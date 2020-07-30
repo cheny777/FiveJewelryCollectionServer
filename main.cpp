@@ -9,6 +9,7 @@
 #include <math.h>
 #include <map>
 #include "funvtiom.h"
+#include "gmath.h"
 
 #define PI 3.1415926535897932384626433832795
 #define RADIAN PI/180.0
@@ -17,7 +18,7 @@
 /*五轴连续采集*/
 using namespace std;
 #ifndef WIN32
-const string axispath = "/home/Lynuc/Users/NCFiles/TESTFILE.NC";
+const string axispath = "/home/Lynuc/Users/NCFiles/TEST_5AXIS.NC";
 #else
 const string axispath = "./TESTFILEn.NC";
 #endif
@@ -49,6 +50,67 @@ int main(int argc, char *argv[])
     CIValue.push_back(30528);
     double XYZAC[6];
     cout<<"start "<<endl;
+
+#ifndef WIN32
+    /*获取第一第二旋转轴*/
+    double FristVector[3]={0};
+    double SecondVector[3]={0};
+    for(int i = 0; i < 3; i++)
+    {
+        GetMacroVal(CIkey, THEFIRSTROTATIONAXISDEFLECTIONANGLEVECTOR + i,FristVector[i]);
+        GetMacroVal(CIkey, THESECONDROTATIONAXISDEFLECTIONANGLEVECTOR + i,SecondVector[i]);
+
+
+    }
+    if((FristVector[0] == 0)&&(FristVector[1]==0)&&(FristVector[2] == 0))
+    {
+        FristVector[0] = 1;
+        FristVector[1] = 0;
+        FristVector[2] = 0;
+    }
+    if((SecondVector[0] == 0)&&(SecondVector[1]==0)&&(SecondVector[2] == 0))
+    {
+        SecondVector[0] = 0;
+        SecondVector[1] = 0;
+        SecondVector[2] = 1;
+    }
+    double onoff=0;
+    GetMacroVal(CIkey, ROTATIONONOFF,onoff);
+    int intonoff = onoff+0.00001;
+    if(m_showDebug)
+    {
+        cout<<"vectoronoff:"<<intonoff<<endl;
+    }
+    if(intonoff==0)
+    {
+        FristVector[0] = 1;
+        FristVector[1] = 0;
+        FristVector[2] = 0;
+        SecondVector[0] = 0;
+        SecondVector[1] = 0;
+        SecondVector[2] = 1;
+    }
+
+    if(m_showDebug)
+    {
+        for(int i =0;i<3;i++)
+        {
+            cout<<"firstVector :"<<FristVector[i]<<" , "<<SecondVector[i]<<endl;
+        }
+    }
+#else
+    /*获取第一第二旋转轴*/
+    double FristVector[3]={0};
+    double SecondVector[3]={0};
+    FristVector[0] = 1;
+    FristVector[1] = 0;
+    FristVector[2] = 0;
+    SecondVector[0] = 0;
+    SecondVector[1] = 0;
+    SecondVector[2] = 1;
+
+#endif
+
 #ifndef WIN32
     while (1)
 #endif
@@ -152,136 +214,105 @@ int main(int argc, char *argv[])
                     }
                 }
             }
-
-
-            cout<<"open file"<<endl;
-            ofstream outfile;
-            outfile.open(axispath.c_str(),ios::out|ios::trunc);
-
-            if(outfile.is_open())
+            /*计算半径和*/
+            vector<double > rediusList;
+            for(int i =0;i<flagAxisList.size();i++)
             {
-#ifndef WIN32
-                for(int i =0;i<ASIXvaluelist.size();i++)
+                double redius_l = 0;
+                for(int j = 0 ;j<flagAxisList[i].size();j++)
                 {
-                    outfile<<"X"<<setiosflags(ios::fixed)<<setprecision(4)<<ASIXvaluelist[i].X
-                          <<"Y"<<setiosflags(ios::fixed)<<setprecision(4)<<ASIXvaluelist[i].Y
-                         <<"Z"<<setiosflags(ios::fixed)<<setprecision(4)<<ASIXvaluelist[i].Z
-                        <<"A"<<setiosflags(ios::fixed)<<setprecision(4)<<ASIXvaluelist[i].A
-                       <<"C"<<setiosflags(ios::fixed)<<setprecision(4)<<ASIXvaluelist[i].C
-                      <<"W"<<setiosflags(ios::fixed)<<setprecision(4)<<ASIXvaluelist[i].W<<endl;
+                    redius_l += sqrt(flagAxisList[i][j].X*flagAxisList[i][j].X+flagAxisList[i][j].Y*flagAxisList[i][j].Y);
                 }
-#else
-                /*测试半径*/
-//                ofstream outfile2;
-//                outfile2.open("./test.nc",ios::out|ios::trunc);
-//                if(outfile2.is_open())
-//                {
-//                    for(int i =0;i<flagAxisList.size();i++)
-//                    {
-//                        for(int j =0 ;j<flagAxisList[i].size();j++)
-//                        {
-//                            outfile2<<"X"<<setiosflags(ios::fixed)<<setprecision(4)<<sqrt(flagAxisList[i][j].X*flagAxisList[i][j].X+flagAxisList[i][j].Y*flagAxisList[i][j].Y)
-//                                  <<"Y"<<setiosflags(ios::fixed)<<setprecision(4)<<i<<endl;
-//                        }
-//                    }
-//                }
+                rediusList.push_back(redius_l);
+            }
+            cout<<"-----------------"<<endl;
+            /*计算平均半径*/
+            for(int i = 0;i<rediusList.size();i++)
+            {
+                rediusList[i] = rediusList[i]/flagAxisList[i].size();
+                cout<<rediusList[i]<<endl;
+            }
+            cout<<"-----------------"<<endl;
 
+            /*每10度一个角，从5度开始*/
+            double sinlimit[36];
+            double coslimit[36];
+            for(int i =0;i<36;i++)
+            {
+                sinlimit[i] = sin((355 - 10*i)*RADIAN);
+                coslimit[i] = cos((355 - 10*i)*RADIAN);
 
-                vector<double > rediusList;
-                   // flagAxisList.erase()
-                for(int i =0;i<flagAxisList.size();i++)
+            }
+            /*差分每个角度下的点*/
+            vector<ASIXvalue> limitCalculateList;
+            vector<ASIXvalue> limitCalculateList36;
+            for(int i =0 ;i<flagAxisList.size();i++)
+            {
+                limitCalculateList.clear();
+                /*计算每个角度的点*/
+                for(int ii = 0;ii<36;ii++)
                 {
-
-                    double redius_l = 0;
-                    for(int j = 2 ;j<flagAxisList[i].size();j++)
+                    ASIXvalue limit;
+                    limit.X = rediusList[i]* coslimit[ii];
+                    limit.Y = rediusList[i]* sinlimit[ii];
+                    limitCalculateList.push_back(limit);
+                }
+                int flagi = 0;
+                for(int j =0 ;j<flagAxisList[i].size()-1;j++)
+                {
+                    /*判断是否在圆上的两点之间*/
+                    if((limitCalculateList[flagi].X>=flagAxisList[i][j].X && limitCalculateList[flagi].X<flagAxisList[i][j+1].X)||
+                            (limitCalculateList[flagi].X<=flagAxisList[i][j].X && limitCalculateList[flagi].X>flagAxisList[i][j+1].X))
                     {
-                        outfile<<"X"<<setiosflags(ios::fixed)<<setprecision(4)<<flagAxisList[i][j].X
-                              <<"Y"<<setiosflags(ios::fixed)<<setprecision(4)<<flagAxisList[i][j].Y
-                             <<"Z"<<setiosflags(ios::fixed)<<setprecision(4)<<flagAxisList[i][j].Z
-                            <<"A"<<setiosflags(ios::fixed)<<setprecision(4)<<flagAxisList[i][j].A
-                           <<"C"<<setiosflags(ios::fixed)<<setprecision(4)<<flagAxisList[i][j].C
-                          <<"W"<<setiosflags(ios::fixed)<<setprecision(4)<<flagAxisList[i][j].W<<endl;
-                        redius_l += sqrt(flagAxisList[i][j].X*flagAxisList[i][j].X+flagAxisList[i][j].Y*flagAxisList[i][j].Y);
-                    }
-                    rediusList.push_back(redius_l);
-                    cout<<flagAxisList[i].size()<<endl;
-                }
-
-                cout<<"-----------------"<<endl;
-                for(int i = 0;i<rediusList.size();i++)
-                {
-                    rediusList[i] = rediusList[i]/flagAxisList[i].size();
-                    cout<<rediusList[i]<<endl;
-                }
-                cout<<"-----------------"<<endl;
-
-
-                double sinlimit[36];
-                double coslimit[36];
-                for(int i =0;i<36;i++)
-                {
-                    sinlimit[i] = sin((5 + 10*i)*RADIAN);
-                    coslimit[i] = cos((5 + 10*i)*RADIAN);
-
-                }
-                vector<ASIXvalue> limitCalculateList;
-                vector<ASIXvalue> limitCalculateList36;
-                for(int i =0 ;i<flagAxisList.size();i++)
-                {
-                    limitCalculateList.clear();
-                    for(int ii = 0;ii<36;ii++)
-                    {
-                        ASIXvalue limit;
-                        limit.X = rediusList[i]* coslimit[ii];
-                        limit.Y = rediusList[i]* sinlimit[ii];
-                        limitCalculateList.push_back(limit);
-                    }
-                    int flagi = 0;
-                    for(int j =0 ;j<flagAxisList[i].size()-1;j++)
-                    {
-                        if((limitCalculateList[flagi].X>=flagAxisList[i][j].X && limitCalculateList[flagi].X<flagAxisList[i][j+1].X)||
-                                (limitCalculateList[flagi].X<=flagAxisList[i][j].X && limitCalculateList[flagi].X>flagAxisList[i][j+1].X))
+                        if(limitCalculateList[flagi].X==flagAxisList[i][j].X)
                         {
-                            if(limitCalculateList[flagi].X==flagAxisList[i][j].X)
-                            {
-                               limitCalculateList36.push_back(flagAxisList[i][j]);
-                            }
-                            else
-                            {
-                                double radio = (flagAxisList[i][j].X-limitCalculateList[flagi].X)/(flagAxisList[i][j].X-flagAxisList[i][j+1].X);
-                                ASIXvalue rediovalue;
-                                rediovalue.X = limitCalculateList[flagi].X;
-                                rediovalue.Y = limitCalculateList[flagi].Y;
-                                rediovalue.Z = (flagAxisList[i][j+1].Z-flagAxisList[i][j].Z)*radio+flagAxisList[i][j].Z;
-                                rediovalue.A = (flagAxisList[i][j+1].A-flagAxisList[i][j].A)*radio+flagAxisList[i][j].A;\
-                                rediovalue.C = (flagAxisList[i][j+1].C-flagAxisList[i][j].C)*radio+flagAxisList[i][j].C;
-                                rediovalue.W = (flagAxisList[i][j+1].W-flagAxisList[i][j].W)*radio+flagAxisList[i][j].W;
-                                limitCalculateList36.push_back(rediovalue);
-
-                            }
-                            flagi++;
+                            limitCalculateList36.push_back(flagAxisList[i][j]);
                         }
+                        else
+                        {
+                            /*差分计算*/
+                            double radio = (flagAxisList[i][j].X-limitCalculateList[flagi].X)/(flagAxisList[i][j].X-flagAxisList[i][j+1].X);
+                            ASIXvalue rediovalue;
+                            rediovalue.X = limitCalculateList[flagi].X;
+                            rediovalue.Y = limitCalculateList[flagi].Y;
+                            rediovalue.Z = (flagAxisList[i][j+1].Z-flagAxisList[i][j].Z)*radio+flagAxisList[i][j].Z;
+                            rediovalue.A = (flagAxisList[i][j+1].A-flagAxisList[i][j].A)*radio+flagAxisList[i][j].A;\
+                            rediovalue.C = (flagAxisList[i][j+1].C-flagAxisList[i][j].C)*radio+flagAxisList[i][j].C;
+                            rediovalue.W = (flagAxisList[i][j+1].W-flagAxisList[i][j].W)*radio+flagAxisList[i][j].W;
+                            limitCalculateList36.push_back(rediovalue);
+
+                        }
+                        flagi++;
                     }
                 }
-
-                vector<ASIXvalue> limitCalculateList36Load;
-                for(int i = 0;i<36; i++)
-                {
-                    for(int j =0 ;j<flagAxisList.size();j++)
-                    {
-                        limitCalculateList36Load.push_back(limitCalculateList36[j*36+i]);
-                    }
-                }
-
-                Savefile("./tttt.nc",limitCalculateList36Load,36,flagAxisList.size());
-                cout<<sin(30*RADIAN)<<endl;
-#endif
             }
-            else
+            /*横向纵向转化*/
+            vector<ASIXvalue> limitCalculateList36Load;
+            for(int i = 0;i<36; i++)
             {
-                cout<<"open error!"<<endl;
+                for(int j =0 ;j<flagAxisList.size();j++)
+                {
+                    limitCalculateList36Load.push_back(limitCalculateList36[j*36+i]);
+                }
             }
-            outfile.close();
+            const char *sss = "./AXIS.nc";
+            Savefile(sss,limitCalculateList36Load,36,flagAxisList.size());
+            /*计算偏移*/
+            for(int i =0;i<limitCalculateList36Load.size();i++)
+            {
+                double chaXYZ[3];
+#ifndef WIN32
+                CalDeltaMoveCoord(chaXYZ,-8-limitCalculateList36Load[i].W,FristVector,SecondVector,limitCalculateList36Load[i].A,limitCalculateList36Load[i].C);
+#else
+                CalDeltaMoveCoordE(chaXYZ,-8-limitCalculateList36Load[i].W,limitCalculateList36Load[i].A,limitCalculateList36Load[i].C);
+#endif
+                limitCalculateList36Load[i].X -=  chaXYZ[0];
+                limitCalculateList36Load[i].Y -=  chaXYZ[1];
+                limitCalculateList36Load[i].Z -=  chaXYZ[2];
+            }
+
+            /*保存*/
+            SavefileNoW(axispath.c_str(),limitCalculateList36Load,36,flagAxisList.size());
             ASIXvaluelist.clear();
 #ifndef WIN32
             SetMacroVal(key,561,0);

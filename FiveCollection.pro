@@ -3,7 +3,7 @@ QT -= gui
 
 CONFIG += c++11
 
-TARGET = FiveCollection
+TARGET = FiveAnnulusCollection
 CONFIG += console
 CONFIG -= app_bundle
 
@@ -34,4 +34,5 @@ LIBS += -L$$PWD/./ -lCIComm
 }
 HEADERS += \
     cicomm.h \
-    funvtiom.h
+    funvtiom.h \
+    gmath.h
