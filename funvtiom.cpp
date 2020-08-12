@@ -63,3 +63,30 @@ bool SavefileNoW(const char *strpath, std::vector<ASIXvalue> asv, int radian, in
     }
     return true;
 }
+
+bool SaveFile(char *strpath, std::vector<std::vector<ASIXvalue> > asv, int size)
+{
+    std::ofstream fileout;
+    fileout.open(strpath, std::ios::out);
+    if (fileout.is_open())
+    {
+        for (int i = 0; i < asv.size(); i++)
+        {
+            for(int j=0;j<asv[i].size();j++)
+            {
+                fileout << "X" << std::setiosflags(std::ios::fixed) << std::setprecision(4) << asv[i][j].X
+                        << "Y" << std::setiosflags(std::ios::fixed) << std::setprecision(4) << asv[i][j].Y
+                        << "Z" << std::setiosflags(std::ios::fixed) << std::setprecision(4) << asv[i][j].Z
+                        << "A" << std::setiosflags(std::ios::fixed) << std::setprecision(4) << asv[i][j].A
+                        << "C" << std::setiosflags(std::ios::fixed) << std::setprecision(4) << asv[i][j].C
+                        << "W" << std::setiosflags(std::ios::fixed) << std::setprecision(4) << asv[i][j].W << std::endl;
+
+            }
+        }
+    }
+    else
+    {
+        return false;
+    }
+    return true;
+}

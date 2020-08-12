@@ -10,6 +10,8 @@
 #include <map>
 #include "funvtiom.h"
 #include "gmath.h"
+#include <algorithm>
+#include <numeric>
 
 #define PI 3.1415926535897932384626433832795
 #define RADIAN PI/180.0
@@ -30,6 +32,8 @@ int main(int argc, char *argv[])
 #ifndef WIN32
     int key =CreateCIKernel();
 #endif
+
+    int m_showDebug = 0;
     cout<<"start 1"<<endl;
     double dou;
     /*X:30118
@@ -57,10 +61,8 @@ int main(int argc, char *argv[])
     double SecondVector[3]={0};
     for(int i = 0; i < 3; i++)
     {
-        GetMacroVal(CIkey, THEFIRSTROTATIONAXISDEFLECTIONANGLEVECTOR + i,FristVector[i]);
-        GetMacroVal(CIkey, THESECONDROTATIONAXISDEFLECTIONANGLEVECTOR + i,SecondVector[i]);
-
-
+        GetMacroVal(key, THEFIRSTROTATIONAXISDEFLECTIONANGLEVECTOR + i,FristVector[i]);
+        GetMacroVal(key, THESECONDROTATIONAXISDEFLECTIONANGLEVECTOR + i,SecondVector[i]);
     }
     if((FristVector[0] == 0)&&(FristVector[1]==0)&&(FristVector[2] == 0))
     {
@@ -75,7 +77,7 @@ int main(int argc, char *argv[])
         SecondVector[2] = 1;
     }
     double onoff=0;
-    GetMacroVal(CIkey, ROTATIONONOFF,onoff);
+    GetMacroVal(key, ROTATIONONOFF,onoff);
     int intonoff = onoff+0.00001;
     if(m_showDebug)
     {
@@ -111,6 +113,10 @@ int main(int argc, char *argv[])
 
 #endif
 
+
+    /*数据零时容器*/
+    vector<vector<ASIXvalue> > flagAxisList;
+    vector<ASIXvalue> flagAxisListList;
 #ifndef WIN32
     while (1)
 #endif
@@ -122,6 +128,14 @@ int main(int argc, char *argv[])
 #endif
         {
 #ifndef WIN32
+            double sdou;
+            GetMacroVal(key,562,sdou);
+            if((int )(sdou+0.00001) == 1)
+            {
+                flagAxisList.push_back(flagAxisListList);
+                flagAxisListList.clear();
+                SetMacroVal(key,562,0);
+            }
             /*数据采集*/
             for(int i =0 ;i<CIValue.size();i++)
             {
@@ -134,7 +148,8 @@ int main(int argc, char *argv[])
             v.A = XYZAC[3];
             v.C = XYZAC[4];
             v.W = XYZAC[5];
-            ASIXvaluelist.push_back(v);
+            //ASIXvaluelist.push_back(v);
+            flagAxisListList.push_back(v);
 #else
             ifstream infile;
             infile.open("./TESTFILE.NC",ios::in);
@@ -169,51 +184,52 @@ int main(int argc, char *argv[])
         else if ((int )(dou+0.00001) == 2)
 #endif
         {
-            /*数据零时容器*/
-            vector<vector<ASIXvalue>> flagAxisList;
-            vector<ASIXvalue> flagAxisListList;
+        SaveFile("/home/Lynuc/Users/NCFiles/OUTTESTNC.NC",flagAxisList,1);
 
-            /*筛选数据，确保数据再圆上，且没有多余点位*/
-            int flag = 0;
-            double lastpoint = 0;
-            for(int i =0;i<ASIXvaluelist.size();i++)
-            {
-                if(fabs(ASIXvaluelist[i].W)>1.0)
-                {
-                    double sqrt_l = sqrt(ASIXvaluelist[i].X*ASIXvaluelist[i].X+ASIXvaluelist[i].Y*ASIXvaluelist[i].Y);
-                    if(fabs(sqrt_l-lastpoint)<0.01)
-                    {
-                        flagAxisListList.push_back(ASIXvaluelist[i]);
-                    }
-                    if(i > ASIXvaluelist.size() - 5)
-                    {
-                        lastpoint = sqrt(ASIXvaluelist[i].X*ASIXvaluelist[i].X+ASIXvaluelist[i].Y*ASIXvaluelist[i].Y);
-                    }
-                    else
-                    {
-                        lastpoint = sqrt(ASIXvaluelist[i+4].X*ASIXvaluelist[i+4].X+ASIXvaluelist[i+4].Y*ASIXvaluelist[i+4].Y);
-                    }
-                    flag = 1;
-                }
-                else
-                {
-                    if(i > ASIXvaluelist.size() - 5)
-                    {
-                        lastpoint = sqrt(ASIXvaluelist[i].X*ASIXvaluelist[i].X+ASIXvaluelist[i].Y*ASIXvaluelist[i].Y);
-                    }
-                    else
-                    {
-                        lastpoint = sqrt(ASIXvaluelist[i+4].X*ASIXvaluelist[i+4].X+ASIXvaluelist[i+4].Y*ASIXvaluelist[i+4].Y);
-                    }
+//            /*筛选数据，确保数据再圆上，且没有多余点位*/
+//            int flag = 0;
+//            double lastpoint = 0;
+//            for(int i =0;i<ASIXvaluelist.size();i++)
+//            {
+//                if(fabs(ASIXvaluelist[i].W)>1.0)
+//                {
+//                    double sqrt_l = sqrt(ASIXvaluelist[i].X*ASIXvaluelist[i].X+ASIXvaluelist[i].Y*ASIXvaluelist[i].Y);
+//                    if(fabs(sqrt_l-lastpoint)<0.01)
+//                    {
+//                        flagAxisListList.push_back(ASIXvaluelist[i]);
+//                    }
+//                    if(i > ASIXvaluelist.size() - 5)
+//                    {
+//                        lastpoint = sqrt(ASIXvaluelist[i].X*ASIXvaluelist[i].X+ASIXvaluelist[i].Y*ASIXvaluelist[i].Y);
+//                    }
+//                    else
+//                    {
+//                        lastpoint = sqrt(ASIXvaluelist[i+4].X*ASIXvaluelist[i+4].X+ASIXvaluelist[i+4].Y*ASIXvaluelist[i+4].Y);
+//                    }
+//                    flag = 1;
+//                }
+//                else
+//                {
+//                    if(i > ASIXvaluelist.size() - 5)
+//                    {
+//                        lastpoint = sqrt(ASIXvaluelist[i].X*ASIXvaluelist[i].X+ASIXvaluelist[i].Y*ASIXvaluelist[i].Y);
+//                    }
+//                    else
+//                    {
+//                        lastpoint = sqrt(ASIXvaluelist[i+4].X*ASIXvaluelist[i+4].X+ASIXvaluelist[i+4].Y*ASIXvaluelist[i+4].Y);
+//                    }
 
-                    if(flag != 0)
-                    {
-                        flagAxisList.push_back(flagAxisListList);
-                        flagAxisListList.clear();
-                        flag = 0;
-                    }
-                }
-            }
+//                    if(flag != 0)
+//                    {
+//                        flagAxisList.push_back(flagAxisListList);
+//                        flagAxisListList.clear();
+//                        flag = 0;
+//                    }
+//                }
+//            }
+
+/**********************************/
+
             /*计算半径和*/
             vector<double > rediusList;
             for(int i =0;i<flagAxisList.size();i++)
@@ -233,6 +249,13 @@ int main(int argc, char *argv[])
                 cout<<rediusList[i]<<endl;
             }
             cout<<"-----------------"<<endl;
+            /*均值新方法*/
+//            for(int i =0;i<flagAxisList.size();i++)
+//            {
+//                double sum = accumulate(begin(flagAxisList[i]),end(flagAxisList[i]),0.0);
+//                double mean = sum/flagAxisList[i].size();
+//                rediusList.push_back(mean);
+//            }
 
             /*每10度一个角，从5度开始*/
             double sinlimit[36];
@@ -325,7 +348,6 @@ int main(int argc, char *argv[])
             ASIXvaluelist.clear();
         }
     }
-
     cout<<"OK"<<endl;
     return a.exec();
 }

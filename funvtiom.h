@@ -19,7 +19,7 @@ typedef struct ASIXvalue
 void Savefile(char *strpath,std::vector<ASIXvalue> asv);
 bool Savefile(const char *strpath, std::vector<ASIXvalue> asv, int radian, int size);
 bool SavefileNoW(const char *strpath,std::vector<ASIXvalue> asv,int radian,int size);
-
+bool SaveFile(char *strpath, std::vector<std::vector<ASIXvalue> > asv,int size);
 
 
 
