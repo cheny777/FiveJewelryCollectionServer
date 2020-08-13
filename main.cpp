@@ -128,14 +128,6 @@ int main(int argc, char *argv[])
 #endif
         {
 #ifndef WIN32
-            double sdou;
-            GetMacroVal(key,562,sdou);
-            if((int )(sdou+0.00001) == 1)
-            {
-                flagAxisList.push_back(flagAxisListList);
-                flagAxisListList.clear();
-                SetMacroVal(key,562,0);
-            }
             /*数据采集*/
             for(int i =0 ;i<CIValue.size();i++)
             {
@@ -148,8 +140,7 @@ int main(int argc, char *argv[])
             v.A = XYZAC[3];
             v.C = XYZAC[4];
             v.W = XYZAC[5];
-            //ASIXvaluelist.push_back(v);
-            flagAxisListList.push_back(v);
+            ASIXvaluelist.push_back(v);
 #else
             ifstream infile;
             infile.open("./TESTFILE.NC",ios::in);
@@ -184,159 +175,197 @@ int main(int argc, char *argv[])
         else if ((int )(dou+0.00001) == 2)
 #endif
         {
-        SaveFile("/home/Lynuc/Users/NCFiles/OUTTESTNC.NC",flagAxisList,1);
+            Savefile("/home/Lynuc/Users/NCFiles/OUTTESTNC.NC",ASIXvaluelist);
+            //SaveFile("/home/Lynuc/Users/NCFiles/OUTTESTNC.NC",flagAxisList,1);
+            /*筛选数据，确保数据再圆上，且没有多余点位*/
+            //            int flag = 0;
+            //            double lastpoint = 0;
+            //            for(int i =0;i<(int)ASIXvaluelist.size();i++)
+            //            {
+            //                if(fabs(ASIXvaluelist[i].W)>1.0)
+            //                {
+            //                    double sqrt_l = sqrt(ASIXvaluelist[i].X*ASIXvaluelist[i].X+ASIXvaluelist[i].Y*ASIXvaluelist[i].Y);
+            //                    if(fabs(sqrt_l-lastpoint)<0.01)
+            //                    {
+            //                        flagAxisListList.push_back(ASIXvaluelist[i]);
+            //                    }
+            //                    if(i > (int)ASIXvaluelist.size() - 5)
+            //                    {
+            //                        lastpoint = sqrt(ASIXvaluelist[i].X*ASIXvaluelist[i].X+ASIXvaluelist[i].Y*ASIXvaluelist[i].Y);
+            //                    }
+            //                    else
+            //                    {
+            //                        lastpoint = sqrt(ASIXvaluelist[i+4].X*ASIXvaluelist[i+4].X+ASIXvaluelist[i+4].Y*ASIXvaluelist[i+4].Y);
+            //                    }
+            //                    flag = 1;
+            //                }
+            //                else
+            //                {
+            //                    if(i > (int)ASIXvaluelist.size() - 5)
+            //                    {
+            //                        lastpoint = sqrt(ASIXvaluelist[i].X*ASIXvaluelist[i].X+ASIXvaluelist[i].Y*ASIXvaluelist[i].Y);
+            //                    }
+            //                    else
+            //                    {
+            //                        lastpoint = sqrt(ASIXvaluelist[i+4].X*ASIXvaluelist[i+4].X+ASIXvaluelist[i+4].Y*ASIXvaluelist[i+4].Y);
+            //                    }
 
-//            /*筛选数据，确保数据再圆上，且没有多余点位*/
-//            int flag = 0;
-//            double lastpoint = 0;
-//            for(int i =0;i<ASIXvaluelist.size();i++)
-//            {
-//                if(fabs(ASIXvaluelist[i].W)>1.0)
-//                {
-//                    double sqrt_l = sqrt(ASIXvaluelist[i].X*ASIXvaluelist[i].X+ASIXvaluelist[i].Y*ASIXvaluelist[i].Y);
-//                    if(fabs(sqrt_l-lastpoint)<0.01)
-//                    {
-//                        flagAxisListList.push_back(ASIXvaluelist[i]);
-//                    }
-//                    if(i > ASIXvaluelist.size() - 5)
-//                    {
-//                        lastpoint = sqrt(ASIXvaluelist[i].X*ASIXvaluelist[i].X+ASIXvaluelist[i].Y*ASIXvaluelist[i].Y);
-//                    }
-//                    else
-//                    {
-//                        lastpoint = sqrt(ASIXvaluelist[i+4].X*ASIXvaluelist[i+4].X+ASIXvaluelist[i+4].Y*ASIXvaluelist[i+4].Y);
-//                    }
-//                    flag = 1;
-//                }
-//                else
-//                {
-//                    if(i > ASIXvaluelist.size() - 5)
-//                    {
-//                        lastpoint = sqrt(ASIXvaluelist[i].X*ASIXvaluelist[i].X+ASIXvaluelist[i].Y*ASIXvaluelist[i].Y);
-//                    }
-//                    else
-//                    {
-//                        lastpoint = sqrt(ASIXvaluelist[i+4].X*ASIXvaluelist[i+4].X+ASIXvaluelist[i+4].Y*ASIXvaluelist[i+4].Y);
-//                    }
+            //                    if(flag != 0)
+            //                    {
+            //                        flagAxisList.push_back(flagAxisListList);
+            //                        flagAxisListList.clear();
+            //                        flag = 0;
+            //                    }
+            //                }
+            //            }
 
-//                    if(flag != 0)
-//                    {
-//                        flagAxisList.push_back(flagAxisListList);
-//                        flagAxisListList.clear();
-//                        flag = 0;
-//                    }
-//                }
-//            }
-
-/**********************************/
-
-            /*计算半径和*/
-            vector<double > rediusList;
-            for(int i =0;i<flagAxisList.size();i++)
+            int flag = 0;
+#define Isolatedpoints 3
+            if(ASIXvaluelist.size()>6)
             {
-                double redius_l = 0;
-                for(int j = 0 ;j<flagAxisList[i].size();j++)
+                double last5pointH = ASIXvaluelist[Isolatedpoints].Z;
+                for(int i =0;i<(int)ASIXvaluelist.size();i++)
                 {
-                    redius_l += sqrt(flagAxisList[i][j].X*flagAxisList[i][j].X+flagAxisList[i][j].Y*flagAxisList[i][j].Y);
-                }
-                rediusList.push_back(redius_l);
-            }
-            cout<<"-----------------"<<endl;
-            /*计算平均半径*/
-            for(int i = 0;i<rediusList.size();i++)
-            {
-                rediusList[i] = rediusList[i]/flagAxisList[i].size();
-                cout<<rediusList[i]<<endl;
-            }
-            cout<<"-----------------"<<endl;
-            /*均值新方法*/
-//            for(int i =0;i<flagAxisList.size();i++)
-//            {
-//                double sum = accumulate(begin(flagAxisList[i]),end(flagAxisList[i]),0.0);
-//                double mean = sum/flagAxisList[i].size();
-//                rediusList.push_back(mean);
-//            }
-
-            /*每10度一个角，从5度开始*/
-            double sinlimit[36];
-            double coslimit[36];
-            for(int i =0;i<36;i++)
-            {
-                sinlimit[i] = sin((355 - 10*i)*RADIAN);
-                coslimit[i] = cos((355 - 10*i)*RADIAN);
-
-            }
-            /*差分每个角度下的点*/
-            vector<ASIXvalue> limitCalculateList;
-            vector<ASIXvalue> limitCalculateList36;
-            for(int i =0 ;i<flagAxisList.size();i++)
-            {
-                limitCalculateList.clear();
-                /*计算每个角度的点*/
-                for(int ii = 0;ii<36;ii++)
-                {
-                    ASIXvalue limit;
-                    limit.X = rediusList[i]* coslimit[ii];
-                    limit.Y = rediusList[i]* sinlimit[ii];
-                    limitCalculateList.push_back(limit);
-                }
-                int flagi = 0;
-                for(int j =0 ;j<flagAxisList[i].size()-1;j++)
-                {
-                    /*判断是否在圆上的两点之间*/
-                    if((limitCalculateList[flagi].X>=flagAxisList[i][j].X && limitCalculateList[flagi].X<flagAxisList[i][j+1].X)||
-                            (limitCalculateList[flagi].X<=flagAxisList[i][j].X && limitCalculateList[flagi].X>flagAxisList[i][j+1].X))
+                    if(fabs(ASIXvaluelist[i].Z-last5pointH)<0.01&&fabs(ASIXvaluelist[i].W)>0.1)
                     {
-                        if(limitCalculateList[flagi].X==flagAxisList[i][j].X)
+                        flagAxisListList.push_back(ASIXvaluelist[i]);
+                        flag = 1;
+                    }
+                    else
+                    {
+                        if(flag!=0)
                         {
-                            limitCalculateList36.push_back(flagAxisList[i][j]);
+                            /*逆序*/
+                            reverse(flagAxisListList.begin(),flagAxisListList.end());
+                            flagAxisList.push_back(flagAxisListList);
+                            flagAxisListList.clear();
+                            flag = 0;
                         }
-                        else
-                        {
-                            /*差分计算*/
-                            double radio = (flagAxisList[i][j].X-limitCalculateList[flagi].X)/(flagAxisList[i][j].X-flagAxisList[i][j+1].X);
-                            ASIXvalue rediovalue;
-                            rediovalue.X = limitCalculateList[flagi].X;
-                            rediovalue.Y = limitCalculateList[flagi].Y;
-                            rediovalue.Z = (flagAxisList[i][j+1].Z-flagAxisList[i][j].Z)*radio+flagAxisList[i][j].Z;
-                            rediovalue.A = (flagAxisList[i][j+1].A-flagAxisList[i][j].A)*radio+flagAxisList[i][j].A;\
-                            rediovalue.C = (flagAxisList[i][j+1].C-flagAxisList[i][j].C)*radio+flagAxisList[i][j].C;
-                            rediovalue.W = (flagAxisList[i][j+1].W-flagAxisList[i][j].W)*radio+flagAxisList[i][j].W;
-                            limitCalculateList36.push_back(rediovalue);
+                    }
 
+                    if(i == (int)ASIXvaluelist.size()-6)
+                    {
+                        last5pointH =  ASIXvaluelist[i-Isolatedpoints].Z;
+                    }
+                    else
+                    {
+                        last5pointH = ASIXvaluelist[i+Isolatedpoints].Z;
+                    }
+
+                }
+                SaveFile("./test.nc",flagAxisList,13);
+
+                /**********************************/
+                /*计算半径和*/
+                vector<double > rediusList;
+                for(int i =0;i<(int)flagAxisList.size();i++)
+                {
+                    double redius_l = 0;
+                    for(int j = 0 ;j<(int)flagAxisList[i].size();j++)
+                    {
+                        redius_l += sqrt(flagAxisList[i][j].X*flagAxisList[i][j].X+flagAxisList[i][j].Y*flagAxisList[i][j].Y);
+                    }
+                    rediusList.push_back(redius_l);
+                }
+                cout<<"-----------------"<<endl;
+                /*计算平均半径*/
+                for(int i = 0;i<(int)rediusList.size();i++)
+                {
+                    rediusList[i] = rediusList[i]/flagAxisList[i].size();
+                    cout<<rediusList[i]<<endl;
+                }
+                cout<<"-----------------"<<endl;
+                /*均值新方法*/
+                //            for(int i =0;i<flagAxisList.size();i++)
+                //            {
+                //                double sum = accumulate(begin(flagAxisList[i]),end(flagAxisList[i]),0.0);
+                //                double mean = sum/flagAxisList[i].size();
+                //                rediusList.push_back(mean);
+                //            }
+
+                /*每10度一个角，从5度开始*/
+                double sinlimit[36];
+                double coslimit[36];
+                for(int i =0;i<36;i++)
+                {
+                    sinlimit[i] = sin((355 - 10*i)*RADIAN);
+                    coslimit[i] = cos((355 - 10*i)*RADIAN);
+
+                }
+                /*差分每个角度下的点*/
+                vector<ASIXvalue> limitCalculateList;
+                vector<ASIXvalue> limitCalculateList36;
+                for(int i =0 ;i<(int)flagAxisList.size();i++)
+                {
+                    limitCalculateList.clear();
+                    /*计算每个角度的点*/
+                    for(int ii = 0;ii<36;ii++)
+                    {
+                        ASIXvalue limit;
+                        limit.X = rediusList[i]* coslimit[ii];
+                        limit.Y = rediusList[i]* sinlimit[ii];
+                        limitCalculateList.push_back(limit);
+                    }
+                    int flagi = 0;
+                    for(int j =0 ;j<(int)flagAxisList[i].size()-1;j++)
+                    {
+                        /*判断是否在圆上的两点之间*/
+                        if((limitCalculateList[flagi].X>=flagAxisList[i][j].X && limitCalculateList[flagi].X<flagAxisList[i][j+1].X)||
+                                (limitCalculateList[flagi].X<=flagAxisList[i][j].X && limitCalculateList[flagi].X>flagAxisList[i][j+1].X))
+                        {
+                            if(limitCalculateList[flagi].X==flagAxisList[i][j].X)
+                            {
+                                limitCalculateList36.push_back(flagAxisList[i][j]);
+                            }
+                            else
+                            {
+                                /*差分计算*/
+                                double radio = (flagAxisList[i][j].X-limitCalculateList[flagi].X)/(flagAxisList[i][j].X-flagAxisList[i][j+1].X);
+                                ASIXvalue rediovalue;
+                                rediovalue.X = limitCalculateList[flagi].X;
+                                rediovalue.Y = limitCalculateList[flagi].Y;
+                                rediovalue.Z = (flagAxisList[i][j+1].Z-flagAxisList[i][j].Z)*radio+flagAxisList[i][j].Z;
+                                rediovalue.A = (flagAxisList[i][j+1].A-flagAxisList[i][j].A)*radio+flagAxisList[i][j].A;\
+                                rediovalue.C = (flagAxisList[i][j+1].C-flagAxisList[i][j].C)*radio+flagAxisList[i][j].C;
+                                rediovalue.W = (flagAxisList[i][j+1].W-flagAxisList[i][j].W)*radio+flagAxisList[i][j].W;
+                                limitCalculateList36.push_back(rediovalue);
+
+                            }
+                            flagi++;
                         }
-                        flagi++;
                     }
                 }
-            }
-            /*横向纵向转化*/
-            vector<ASIXvalue> limitCalculateList36Load;
-            for(int i = 0;i<36; i++)
-            {
-                for(int j =0 ;j<flagAxisList.size();j++)
+                /*横向纵向转化*/
+                vector<ASIXvalue> limitCalculateList36Load;
+                for(int i = 0;i<36; i++)
                 {
-                    limitCalculateList36Load.push_back(limitCalculateList36[j*36+i]);
+                    for(int j =0 ;j<(int)flagAxisList.size();j++)
+                    {
+                        limitCalculateList36Load.push_back(limitCalculateList36[j*36+i]);
+                    }
                 }
-            }
-            const char *sss = "./AXIS.nc";
-            Savefile(sss,limitCalculateList36Load,36,flagAxisList.size());
-            /*计算偏移*/
-            for(int i =0;i<limitCalculateList36Load.size();i++)
-            {
-                double chaXYZ[3];
+                const char *sss = "./AXIS.nc";
+                Savefile(sss,limitCalculateList36Load,36,flagAxisList.size());
+                /*计算偏移*/
+                for(int i =0;i<(int)limitCalculateList36Load.size();i++)
+                {
+                    double chaXYZ[3];
 #ifndef WIN32
-                CalDeltaMoveCoord(chaXYZ,-8-limitCalculateList36Load[i].W,FristVector,SecondVector,limitCalculateList36Load[i].A,limitCalculateList36Load[i].C);
+                    CalDeltaMoveCoord(chaXYZ,limitCalculateList36Load[i].W+5,FristVector,SecondVector,limitCalculateList36Load[i].A,limitCalculateList36Load[i].C);
 #else
-                CalDeltaMoveCoordE(chaXYZ,-8-limitCalculateList36Load[i].W,limitCalculateList36Load[i].A,limitCalculateList36Load[i].C);
+                    CalDeltaMoveCoordE(chaXYZ,limitCalculateList36Load[i].W+5,limitCalculateList36Load[i].A,limitCalculateList36Load[i].C);
 #endif
-                limitCalculateList36Load[i].X -=  chaXYZ[0];
-                limitCalculateList36Load[i].Y -=  chaXYZ[1];
-                limitCalculateList36Load[i].Z -=  chaXYZ[2];
-            }
+                    limitCalculateList36Load[i].X -=  chaXYZ[0];
+                    limitCalculateList36Load[i].Y -=  chaXYZ[1];
+                    limitCalculateList36Load[i].Z -=  chaXYZ[2];
+                }
 
-            /*保存*/
-            SavefileNoW(axispath.c_str(),limitCalculateList36Load,36,flagAxisList.size());
+                /*保存*/
+                SavefileNoW(axispath.c_str(),limitCalculateList36Load,36,flagAxisList.size());
+            }
             ASIXvaluelist.clear();
+            flagAxisList.clear();
+
 #ifndef WIN32
             SetMacroVal(key,561,0);
 #endif
@@ -345,6 +374,7 @@ int main(int argc, char *argv[])
         else
 #endif
         {
+            flagAxisList.clear();
             ASIXvaluelist.clear();
         }
     }
